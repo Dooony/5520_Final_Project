@@ -36,7 +36,11 @@
             android:exported="false"
             android:label="@string/title_activity_maps" />
         <activity
-            android:name=".ui.login.LoginActivity"
+            android:name=".RegisterActivity"
+            android:exported="false"
+            android:label="Register" />
+        <activity
+            android:name=".EmailPasswordActivity"
             android:exported="true"
             android:label="@string/title_activity_login" >
             <intent-filter>
