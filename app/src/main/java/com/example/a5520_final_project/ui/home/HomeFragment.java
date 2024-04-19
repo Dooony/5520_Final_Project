@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.a5520_final_project.MarkerData;
 import com.example.a5520_final_project.R;
 import com.example.a5520_final_project.databinding.FragmentHomeBinding;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -141,14 +142,14 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
             DatabaseReference markersRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("markers");
             String markerId = markersRef.push().getKey();
             if (markerId != null) {
-                Map<String, Object> markerData = new HashMap<>();
-                markerData.put("latitude", marker.getPosition().latitude);
-                markerData.put("longitude", marker.getPosition().longitude);
-                markerData.put("title", marker.getTitle());
+                long timestamp = System.currentTimeMillis(); // Get current timestamp
+                MarkerData markerData = new MarkerData(marker.getTitle(), timestamp, marker.getPosition().latitude, marker.getPosition().longitude);
                 markersRef.child(markerId).setValue(markerData);
             }
         }
     }
+
+
 
 
 
@@ -301,7 +302,4 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
             }
         });
     }
-
-
-
 }
