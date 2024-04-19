@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,15 +33,27 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
     private GoogleMap mMap = null;
     private MapView mMapView;
+    private DatabaseReference markersRef;
 
     @Nullable
     @Override
@@ -54,6 +67,12 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
         // Get ViewModel instance
         HomeViewModel homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
+        // Get reference to the user's markers in Firebase
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            String userId = currentUser.getUid();
+            markersRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("markers");
+        }
         return root;
     }
 
@@ -115,6 +134,25 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    private void saveMarkerToDatabase(Marker marker) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            String userId = currentUser.getUid();
+            DatabaseReference markersRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("markers");
+            String markerId = markersRef.push().getKey();
+            if (markerId != null) {
+                Map<String, Object> markerData = new HashMap<>();
+                markerData.put("latitude", marker.getPosition().latitude);
+                markerData.put("longitude", marker.getPosition().longitude);
+                markerData.put("title", marker.getTitle());
+                markersRef.child(markerId).setValue(markerData);
+            }
+        }
+    }
+
+
+
+
 
 
     @Override
@@ -163,6 +201,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         LatLng newyork = new LatLng(40, -74);
         mMap.moveCamera(CameraUpdateFactory.newLatLng(newyork));
         enableMarkerPlacement();
+        loadUserMarkers();
     }
 
     private BitmapDescriptor
@@ -219,7 +258,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                         String markerName = markerNameEditText.getText().toString();
 
                         // Add a marker at the clicked location with the customized name
-                        mMap.addMarker(new MarkerOptions().position(latLng).title(markerName));
+                        Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(markerName));
+                        saveMarkerToDatabase(marker);
                     }
                 });
 
@@ -231,6 +271,33 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                     }
                 });
                 builder.show();
+            }
+        });
+    }
+
+    private void loadUserMarkers() {
+        if (markersRef == null) {
+            return;
+        }
+
+        markersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot markerSnapshot : dataSnapshot.getChildren()) {
+                    double latitude = markerSnapshot.child("latitude").getValue(Double.class);
+                    double longitude = markerSnapshot.child("longitude").getValue(Double.class);
+                    String title = markerSnapshot.child("title").getValue(String.class);
+
+                    // Add marker to the map
+                    LatLng markerPosition = new LatLng(latitude, longitude);
+                    mMap.addMarker(new MarkerOptions().position(markerPosition).title(title));
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Handle database error
+                Log.e("HomeFragment", "Error loading markers from Firebase: " + databaseError.getMessage());
             }
         });
     }
