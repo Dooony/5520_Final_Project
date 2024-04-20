@@ -2,8 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="vertical">
 
     <EditText
         android:id="@+id/marker_name_edit_text"
@@ -17,8 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Marker Text"
-        android:inputType="textMultiLine"
-        android:lines="4" />
+        android:inputType="textMultiLine" />
 
     <Button
         android:id="@+id/add_photo_button"
@@ -26,4 +24,20 @@
         android:layout_height="wrap_content"
         android:text="Add Photo" />
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/photo_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="3dp">
+        </LinearLayout>
+
+    </ScrollView>
+
+
 </LinearLayout>
+

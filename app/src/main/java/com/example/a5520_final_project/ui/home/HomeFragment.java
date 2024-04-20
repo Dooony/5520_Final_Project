@@ -2,6 +2,7 @@ package com.example.a5520_final_project.ui.home;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.location.Address;
@@ -14,6 +15,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -49,6 +52,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
     private DatabaseReference markersRef;
     private ArrayList<String> selectedPhotos = new ArrayList<>();
     private static final int REQUEST_CODE_PHOTO_PICKER = 123;
+    private LinearLayout photoContainer;
 
     @Nullable
     @Override
@@ -166,18 +170,17 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                 EditText markerNameEditText = dialogView.findViewById(R.id.marker_name_edit_text);
                 EditText markerTextEdit = dialogView.findViewById(R.id.marker_text_edit_text);
                 Button addPhotoButton = dialogView.findViewById(R.id.add_photo_button);
-
-                // Create a list to store selected photos
-                ArrayList<String> selectedPhotos = new ArrayList<>();
+                photoContainer = dialogView.findViewById(R.id.photo_container); // Add this line
 
                 // Set click listener for the add photo button
                 addPhotoButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         // Open the photo library to select photos
-                        Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                        Intent photoPickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
                         photoPickerIntent.setType("image/*");
-                        startActivityForResult(photoPickerIntent, REQUEST_CODE_PHOTO_PICKER);
+                        photoPickerIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true); // Allow multiple photo selection
+                        startActivityForResult(Intent.createChooser(photoPickerIntent, "Select Photos"), REQUEST_CODE_PHOTO_PICKER);
                     }
                 });
 
@@ -194,6 +197,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
                         // Save marker to database with text and photos
                         saveMarkerToDatabase(marker, markerText, selectedPhotos);
+
+                        // Clear selected photos list for next use
+                        selectedPhotos.clear();
                     }
                 });
 
@@ -209,22 +215,55 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         });
     }
 
+
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
             if (data != null) {
-                // Get the URI of the selected photo
-                Uri selectedPhotoUri = data.getData();
-                if (selectedPhotoUri != null) {
-                    // Convert URI to string and store it
-                    String selectedPhotoPath = selectedPhotoUri.toString();
-                    // Add selected photo to the list of selected photos
-                    selectedPhotos.add(selectedPhotoPath);
+                // Get the URI of the selected photo(s)
+                ClipData clipData = data.getClipData();
+                if (clipData != null) {
+                    // Multiple photos selected
+                    for (int i = 0; i < clipData.getItemCount(); i++) {
+                        Uri selectedPhotoUri = clipData.getItemAt(i).getUri();
+                        if (selectedPhotoUri != null) {
+                            // Convert URI to string and store it
+                            String selectedPhotoPath = selectedPhotoUri.toString();
+                            // Add selected photo to the list of selected photos
+                            selectedPhotos.add(selectedPhotoPath);
+                            // Add image view to display the selected photo
+                            ImageView imageView = new ImageView(getContext());
+                            imageView.setLayoutParams(new LinearLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT));
+                            imageView.setImageURI(selectedPhotoUri);
+                            photoContainer.addView(imageView);
+                        }
+                    }
+                } else {
+                    // Single photo selected
+                    Uri selectedPhotoUri = data.getData();
+                    if (selectedPhotoUri != null) {
+                        // Convert URI to string and store it
+                        String selectedPhotoPath = selectedPhotoUri.toString();
+                        // Add selected photo to the list of selected photos
+                        selectedPhotos.add(selectedPhotoPath);
+                        // Add image view to display the selected photo
+                        ImageView imageView = new ImageView(getContext());
+                        imageView.setLayoutParams(new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT));
+                        imageView.setImageURI(selectedPhotoUri);
+                        photoContainer.addView(imageView);
+                    }
                 }
             }
         }
     }
+
+
 
 
     private void loadUserMarkers() {
