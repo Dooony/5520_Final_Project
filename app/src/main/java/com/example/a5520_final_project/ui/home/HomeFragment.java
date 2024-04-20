@@ -44,13 +44,14 @@ import com.google.firebase.database.ValueEventListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.List;
 
 public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
     private GoogleMap mMap = null;
     private MapView mMapView;
     private DatabaseReference markersRef;
-    private ArrayList<String> selectedPhotos = new ArrayList<>();
+    private List<String> selectedPhotos = new ArrayList<>();
     private static final int REQUEST_CODE_PHOTO_PICKER = 123;
     private LinearLayout photoContainer;
 
@@ -133,7 +134,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private void saveMarkerToDatabase(Marker marker, String text, ArrayList<String> photos) {
+    private void saveMarkerToDatabase(Marker marker, String text, List<String> photos) {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
             String userId = currentUser.getUid();

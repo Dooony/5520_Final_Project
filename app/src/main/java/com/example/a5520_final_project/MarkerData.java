@@ -1,7 +1,7 @@
 package com.example.a5520_final_project;
 
-import java.util.ArrayList;
 import java.util.List;
+
 
 public class MarkerData {
     private String name;
@@ -9,13 +9,13 @@ public class MarkerData {
     private double latitude;
     private double longitude;
     private String text;
-    private ArrayList<String> photos;
+    private List<String> photos;
 
     public MarkerData() {
         // Default constructor required for Firebase
     }
 
-    public MarkerData(String name, long timestamp, double latitude, double longitude, String text, ArrayList<String> photos) {
+    public MarkerData(String name, long timestamp, double latitude, double longitude, String text, List<String> photos) {
         this.name = name;
         this.timestamp = timestamp;
         this.latitude = latitude;
@@ -69,7 +69,7 @@ public class MarkerData {
         return photos;
     }
 
-    public void setPhotos(ArrayList<String> photos) {
+    public void setPhotos(List<String> photos) {
         this.photos = photos;
     }
 }

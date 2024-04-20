@@ -1,12 +1,17 @@
 package com.example.a5520_final_project;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.squareup.picasso.Picasso;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -40,20 +45,41 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.MarkerView
     }
 
     static class MarkerViewHolder extends RecyclerView.ViewHolder {
-        private TextView nameTextView, timestampTextView, coordinatesTextView;
+        private TextView nameTextView, timestampTextView, coordinatesTextView, textTextView;
+        private LinearLayout photoContainer;
 
         public MarkerViewHolder(@NonNull View itemView) {
             super(itemView);
             nameTextView = itemView.findViewById(R.id.text_name);
             timestampTextView = itemView.findViewById(R.id.text_timestamp);
             coordinatesTextView = itemView.findViewById(R.id.text_coordinates);
+            textTextView = itemView.findViewById(R.id.text_text);
+            photoContainer = itemView.findViewById(R.id.photo_container);
         }
 
         public void bind(MarkerData marker) {
             nameTextView.setText(marker.getName());
             timestampTextView.setText("Added: " + formatDate(marker.getTimestamp()));
             coordinatesTextView.setText("Lat: " + marker.getLatitude() + ", Long: " + marker.getLongitude());
+            textTextView.setText("Text: " + marker.getText());
+            Log.d("MarkerAdapter", "Text: " + marker.getText());
+
+            // Clear previous photos
+            photoContainer.removeAllViews();
+
+            // Add photos to the photo container
+            for (String photoUrl : marker.getPhotos()) {
+                ImageView imageView = new ImageView(itemView.getContext());
+                imageView.setLayoutParams(new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                // Load photo from URL using your preferred image loading library (e.g., Picasso, Glide)
+                // Example using Picasso:
+                Picasso.get().load(photoUrl).into(imageView);
+                photoContainer.addView(imageView);
+            }
         }
+
 
         private String formatDate(long timestamp) {
             // Convert timestamp to formatted date string (e.g., "Apr 17, 2024")
@@ -62,4 +88,5 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.MarkerView
         }
     }
 }
+
 

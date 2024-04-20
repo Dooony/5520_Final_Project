@@ -5,12 +5,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,11 +22,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class DashboardFragment extends Fragment {
 
@@ -62,12 +56,16 @@ public class DashboardFragment extends Fragment {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     for (DataSnapshot markerSnapshot : dataSnapshot.getChildren()) {
-                        String name = markerSnapshot.child("name").getValue(String.class);
-                        long timestamp = markerSnapshot.child("timestamp").getValue(Long.class);
-                        double latitude = markerSnapshot.child("latitude").getValue(Double.class);
-                        double longitude = markerSnapshot.child("longitude").getValue(Double.class);
-                        String text = markerSnapshot.child("text").getValue(String.class);
-                        ArrayList<String> photos = markerSnapshot.child("photos").getValue(ArrayList.class);
+                        String name = (String) markerSnapshot.child("name").getValue();
+                        long timestamp = (long) markerSnapshot.child("timestamp").getValue();
+                        double latitude = (double) markerSnapshot.child("latitude").getValue();
+                        double longitude = (double) markerSnapshot.child("longitude").getValue();
+                        String text = (String) markerSnapshot.child("text").getValue();
+                        List<String> photos = new ArrayList<>();
+                        for (DataSnapshot photoSnapshot : markerSnapshot.child("photos").getChildren()) {
+                            String photoUrl = photoSnapshot.getValue(String.class);
+                            photos.add(photoUrl);
+                        }
 
                         MarkerData marker = new MarkerData(name, timestamp, latitude, longitude, text, photos);
                         markerList.add(marker);
