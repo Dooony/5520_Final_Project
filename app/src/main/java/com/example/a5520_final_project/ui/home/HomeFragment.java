@@ -1,13 +1,12 @@
 package com.example.a5520_final_project.ui.home;
 
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
+import android.content.Intent;
 import android.location.Address;
 import android.location.Geocoder;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,24 +14,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.a5520_final_project.MarkerData;
 import com.example.a5520_final_project.R;
-import com.example.a5520_final_project.databinding.FragmentHomeBinding;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptor;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -44,17 +38,17 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
     private GoogleMap mMap = null;
     private MapView mMapView;
     private DatabaseReference markersRef;
+    private ArrayList<String> selectedPhotos = new ArrayList<>();
+    private static final int REQUEST_CODE_PHOTO_PICKER = 123;
 
     @Nullable
     @Override
@@ -135,7 +129,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private void saveMarkerToDatabase(Marker marker) {
+    private void saveMarkerToDatabase(Marker marker, String text, ArrayList<String> photos) {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
             String userId = currentUser.getUid();
@@ -143,18 +137,122 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
             String markerId = markersRef.push().getKey();
             if (markerId != null) {
                 long timestamp = System.currentTimeMillis(); // Get current timestamp
-                MarkerData markerData = new MarkerData(marker.getTitle(), timestamp, marker.getPosition().latitude, marker.getPosition().longitude);
+                MarkerData markerData = new MarkerData(marker.getTitle(), timestamp, marker.getPosition().latitude, marker.getPosition().longitude, text, photos);
                 markersRef.child(markerId).setValue(markerData);
+            }
+        }
+    }
+    @Override
+    public void onMapReady(GoogleMap map) {
+        mMap = map;
+        LatLng newyork = new LatLng(40, -74);
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(newyork));
+        enableMarkerPlacement();
+        loadUserMarkers();
+    }
+
+    public void enableMarkerPlacement() {
+        // Set a click listener on the map
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(final LatLng latLng) {
+                // Create a dialog to confirm marker placement and customize marker details
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Add Marker");
+                View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_marker, null);
+                builder.setView(dialogView);
+
+                // Get references to UI components
+                EditText markerNameEditText = dialogView.findViewById(R.id.marker_name_edit_text);
+                EditText markerTextEdit = dialogView.findViewById(R.id.marker_text_edit_text);
+                Button addPhotoButton = dialogView.findViewById(R.id.add_photo_button);
+
+                // Create a list to store selected photos
+                ArrayList<String> selectedPhotos = new ArrayList<>();
+
+                // Set click listener for the add photo button
+                addPhotoButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // Open the photo library to select photos
+                        Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                        photoPickerIntent.setType("image/*");
+                        startActivityForResult(photoPickerIntent, REQUEST_CODE_PHOTO_PICKER);
+                    }
+                });
+
+                builder.setPositiveButton("Add Marker", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Get the name entered by the user
+                        String markerName = markerNameEditText.getText().toString();
+                        // Get the text entered by the user
+                        String markerText = markerTextEdit.getText().toString();
+
+                        // Add a marker at the clicked location with the customized name
+                        Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(markerName));
+
+                        // Save marker to database with text and photos
+                        saveMarkerToDatabase(marker, markerText, selectedPhotos);
+                    }
+                });
+
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // User canceled, do nothing
+                        dialog.dismiss();
+                    }
+                });
+                builder.show();
+            }
+        });
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                // Get the URI of the selected photo
+                Uri selectedPhotoUri = data.getData();
+                if (selectedPhotoUri != null) {
+                    // Convert URI to string and store it
+                    String selectedPhotoPath = selectedPhotoUri.toString();
+                    // Add selected photo to the list of selected photos
+                    selectedPhotos.add(selectedPhotoPath);
+                }
             }
         }
     }
 
 
+    private void loadUserMarkers() {
+        if (markersRef == null) {
+            return;
+        }
 
+        markersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot markerSnapshot : dataSnapshot.getChildren()) {
+                    double latitude = markerSnapshot.child("latitude").getValue(Double.class);
+                    double longitude = markerSnapshot.child("longitude").getValue(Double.class);
+                    String title = markerSnapshot.child("title").getValue(String.class);
 
+                    // Add marker to the map
+                    LatLng markerPosition = new LatLng(latitude, longitude);
+                    mMap.addMarker(new MarkerOptions().position(markerPosition).title(title));
+                }
+            }
 
-
-
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Handle database error
+                Log.e("HomeFragment", "Error loading markers from Firebase: " + databaseError.getMessage());
+            }
+        });
+    }
 
     @Override
     public void onDestroyView() {
@@ -196,110 +294,4 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    @Override
-    public void onMapReady(GoogleMap map) {
-        mMap = map;
-        LatLng newyork = new LatLng(40, -74);
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(newyork));
-        enableMarkerPlacement();
-        loadUserMarkers();
-    }
-
-    private BitmapDescriptor
-    BitmapFromVector(Context context, int vectorResId)
-    {
-        // below line is use to generate a drawable.
-        Drawable vectorDrawable = ContextCompat.getDrawable(
-                context, vectorResId);
-
-        // below line is use to set bounds to our vector
-        // drawable.
-        vectorDrawable.setBounds(
-                0, 0, vectorDrawable.getIntrinsicWidth(),
-                vectorDrawable.getIntrinsicHeight());
-
-        // below line is use to create a bitmap for our
-        // drawable which we have added.
-        Bitmap bitmap = Bitmap.createBitmap(
-                vectorDrawable.getIntrinsicWidth(),
-                vectorDrawable.getIntrinsicHeight(),
-                Bitmap.Config.ARGB_8888);
-
-        // below line is use to add bitmap in our canvas.
-        Canvas canvas = new Canvas(bitmap);
-
-        // below line is use to draw our
-        // vector drawable in canvas.
-        vectorDrawable.draw(canvas);
-
-        // after generating our bitmap we are returning our
-        // bitmap.
-        return BitmapDescriptorFactory.fromBitmap(bitmap);
-    }
-
-    public void enableMarkerPlacement() {
-        // Set a click listener on the map
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(final LatLng latLng) {
-                // Create a dialog to confirm marker placement and customize marker name
-                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                builder.setTitle("Add Marker");
-                builder.setMessage("Do you want to add a marker at this location?");
-
-                // Add an EditText for customizing the marker name
-                final EditText markerNameEditText = new EditText(getContext());
-                markerNameEditText.setHint("Marker Name");
-                builder.setView(markerNameEditText);
-
-                builder.setPositiveButton("Add Marker", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Get the name entered by the user
-                        String markerName = markerNameEditText.getText().toString();
-
-                        // Add a marker at the clicked location with the customized name
-                        Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(markerName));
-                        saveMarkerToDatabase(marker);
-                    }
-                });
-
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // User canceled, do nothing
-                        dialog.dismiss();
-                    }
-                });
-                builder.show();
-            }
-        });
-    }
-
-    private void loadUserMarkers() {
-        if (markersRef == null) {
-            return;
-        }
-
-        markersRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot markerSnapshot : dataSnapshot.getChildren()) {
-                    double latitude = markerSnapshot.child("latitude").getValue(Double.class);
-                    double longitude = markerSnapshot.child("longitude").getValue(Double.class);
-                    String title = markerSnapshot.child("title").getValue(String.class);
-
-                    // Add marker to the map
-                    LatLng markerPosition = new LatLng(latitude, longitude);
-                    mMap.addMarker(new MarkerOptions().position(markerPosition).title(title));
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                // Handle database error
-                Log.e("HomeFragment", "Error loading markers from Firebase: " + databaseError.getMessage());
-            }
-        });
-    }
 }

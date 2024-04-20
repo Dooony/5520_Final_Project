@@ -66,8 +66,10 @@ public class DashboardFragment extends Fragment {
                         long timestamp = markerSnapshot.child("timestamp").getValue(Long.class);
                         double latitude = markerSnapshot.child("latitude").getValue(Double.class);
                         double longitude = markerSnapshot.child("longitude").getValue(Double.class);
+                        String text = markerSnapshot.child("text").getValue(String.class);
+                        ArrayList<String> photos = markerSnapshot.child("photos").getValue(ArrayList.class);
 
-                        MarkerData marker = new MarkerData(name, timestamp, latitude, longitude);
+                        MarkerData marker = new MarkerData(name, timestamp, latitude, longitude, text, photos);
                         markerList.add(marker);
                     }
                     adapter.notifyDataSetChanged();
