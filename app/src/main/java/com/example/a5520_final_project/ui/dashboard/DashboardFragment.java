@@ -62,12 +62,13 @@ public class DashboardFragment extends Fragment {
                         double longitude = (double) markerSnapshot.child("longitude").getValue();
                         String text = (String) markerSnapshot.child("text").getValue();
                         List<String> photos = new ArrayList<>();
+                        Boolean favorite = (Boolean) markerSnapshot.child("fav").getValue();
                         for (DataSnapshot photoSnapshot : markerSnapshot.child("photos").getChildren()) {
                             String photoUrl = photoSnapshot.getValue(String.class);
                             photos.add(photoUrl);
                         }
 
-                        MarkerData marker = new MarkerData(name, timestamp, latitude, longitude, text, photos);
+                        MarkerData marker = new MarkerData(name, timestamp, latitude, longitude, text, photos, favorite);
                         markerList.add(marker);
                     }
                     adapter.notifyDataSetChanged();

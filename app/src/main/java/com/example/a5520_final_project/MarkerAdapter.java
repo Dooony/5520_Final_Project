@@ -4,6 +4,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -45,7 +46,7 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.MarkerView
     }
 
     static class MarkerViewHolder extends RecyclerView.ViewHolder {
-        private TextView nameTextView, timestampTextView, coordinatesTextView, textTextView;
+        private TextView nameTextView, timestampTextView, coordinatesTextView, textTextView, favorite;
         private LinearLayout photoContainer;
 
         public MarkerViewHolder(@NonNull View itemView) {
@@ -55,14 +56,15 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.MarkerView
             coordinatesTextView = itemView.findViewById(R.id.text_coordinates);
             textTextView = itemView.findViewById(R.id.text_text);
             photoContainer = itemView.findViewById(R.id.photo_container);
+            favorite = itemView.findViewById(R.id.favorite);
         }
 
         public void bind(MarkerData marker) {
             nameTextView.setText(marker.getName());
-            timestampTextView.setText("Added: " + formatDate(marker.getTimestamp()));
+            timestampTextView.setText("Date Added: " + formatDate(marker.getTimestamp()));
             coordinatesTextView.setText("Lat: " + marker.getLatitude() + ", Long: " + marker.getLongitude());
             textTextView.setText("Text: " + marker.getText());
-            Log.d("MarkerAdapter", "Text: " + marker.getText());
+            favorite.setText("Favorite: " + marker.getFav());
 
             // Clear previous photos
             photoContainer.removeAllViews();
@@ -73,8 +75,6 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.MarkerView
                 imageView.setLayoutParams(new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT));
-                // Load photo from URL using your preferred image loading library (e.g., Picasso, Glide)
-                // Example using Picasso:
                 Picasso.get().load(photoUrl).into(imageView);
                 photoContainer.addView(imageView);
             }

@@ -11,17 +11,20 @@ public class MarkerData {
     private String text;
     private List<String> photos;
 
+    private Boolean favorite;
+
     public MarkerData() {
         // Default constructor required for Firebase
     }
 
-    public MarkerData(String name, long timestamp, double latitude, double longitude, String text, List<String> photos) {
+    public MarkerData(String name, long timestamp, double latitude, double longitude, String text, List<String> photos, Boolean favorite) {
         this.name = name;
         this.timestamp = timestamp;
         this.latitude = latitude;
         this.longitude = longitude;
         this.text = text;
         this.photos = photos;
+        this.favorite = favorite;
     }
 
     // Getters and setters
@@ -72,6 +75,14 @@ public class MarkerData {
     public void setPhotos(List<String> photos) {
         this.photos = photos;
     }
+
+    public Boolean getFav(){
+        return favorite;
+    }
+    public void setFav(Boolean favorite){
+        this.favorite = favorite;
+    }
+
 }
 
 

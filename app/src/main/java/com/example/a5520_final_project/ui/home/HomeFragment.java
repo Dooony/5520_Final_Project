@@ -14,9 +14,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -134,19 +136,18 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private void saveMarkerToDatabase(Marker marker, String text, List<String> photos) {
+    private void saveMarkerToDatabase(MarkerData markerData) {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
             String userId = currentUser.getUid();
             DatabaseReference markersRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("markers");
             String markerId = markersRef.push().getKey();
             if (markerId != null) {
-                long timestamp = System.currentTimeMillis(); // Get current timestamp
-                MarkerData markerData = new MarkerData(marker.getTitle(), timestamp, marker.getPosition().latitude, marker.getPosition().longitude, text, photos);
                 markersRef.child(markerId).setValue(markerData);
             }
         }
     }
+
     @Override
     public void onMapReady(GoogleMap map) {
         mMap = map;
@@ -171,7 +172,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                 EditText markerNameEditText = dialogView.findViewById(R.id.marker_name_edit_text);
                 EditText markerTextEdit = dialogView.findViewById(R.id.marker_text_edit_text);
                 Button addPhotoButton = dialogView.findViewById(R.id.add_photo_button);
-                photoContainer = dialogView.findViewById(R.id.photo_container); // Add this line
+                CheckBox favoriteCheckBox = dialogView.findViewById(R.id.favorite_checkbox);
+                photoContainer = dialogView.findViewById(R.id.photo_container);
 
                 // Set click listener for the add photo button
                 addPhotoButton.setOnClickListener(new View.OnClickListener() {
@@ -192,12 +194,13 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                         String markerName = markerNameEditText.getText().toString();
                         // Get the text entered by the user
                         String markerText = markerTextEdit.getText().toString();
+                        // Check if the marker should be marked as a favorite
+                        boolean isFavorite = favoriteCheckBox.isChecked(); // Add this line
 
                         // Add a marker at the clicked location with the customized name
                         Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(markerName));
-
-                        // Save marker to database with text and photos
-                        saveMarkerToDatabase(marker, markerText, selectedPhotos);
+                        MarkerData markerData = new MarkerData(markerName, System.currentTimeMillis(), latLng.latitude, latLng.longitude, markerText, selectedPhotos, isFavorite);
+                        saveMarkerToDatabase(markerData); // Update this line
 
                         // Clear selected photos list for next use
                         selectedPhotos.clear();
@@ -215,6 +218,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
             }
         });
     }
+
 
 
 
@@ -282,7 +286,47 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
                     // Add marker to the map
                     LatLng markerPosition = new LatLng(latitude, longitude);
-                    mMap.addMarker(new MarkerOptions().position(markerPosition).title(title));
+                    Marker marker = mMap.addMarker(new MarkerOptions().position(markerPosition).title(title));
+
+                    // Attach click listener to the marker
+                    marker.setTag(markerSnapshot.getKey()); // Set tag to marker ID
+                    mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                        @Override
+                        public boolean onMarkerClick(Marker clickedMarker) {
+                            // Retrieve marker ID from tag
+                            String markerId = (String) clickedMarker.getTag();
+                            if (markerId != null) {
+                                // Retrieve marker data from Firebase based on marker ID
+                                DatabaseReference markerDataRef = markersRef.child(markerId);
+                                markerDataRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                        // Retrieve marker data
+                                        String name = (String) markerSnapshot.child("name").getValue();
+                                        long timestamp = (long) markerSnapshot.child("timestamp").getValue();
+                                        double latitude = (double) markerSnapshot.child("latitude").getValue();
+                                        double longitude = (double) markerSnapshot.child("longitude").getValue();
+                                        String text = (String) markerSnapshot.child("text").getValue();
+                                        List<String> photos = new ArrayList<>();
+                                        Boolean favorite = (Boolean) markerSnapshot.child("fav").getValue();
+                                        for (DataSnapshot photoSnapshot : markerSnapshot.child("photos").getChildren()) {
+                                            String photoUrl = photoSnapshot.getValue(String.class);
+                                            photos.add(photoUrl);
+                                        }
+
+                                        // Display marker information in a dialog
+                                        displayMarkerInformation(name, timestamp, latitude, longitude, text, photos, favorite);
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                                        // Handle onCancelled
+                                    }
+                                });
+                            }
+                            return false; // Allow default behavior (open info window)
+                        }
+                    });
                 }
             }
 
@@ -293,6 +337,34 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
             }
         });
     }
+
+    private void displayMarkerInformation(String name, long timestamp, double latitude, double longitude, String text, List<String> photos, boolean isFavorite) {
+        // Create a dialog to display marker information
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Marker Information");
+
+        // Inflate custom layout for marker information
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_marker_information, null);
+        builder.setView(dialogView);
+
+        // Display marker information in dialog
+        TextView nameTextView = dialogView.findViewById(R.id.marker_name_text_view);
+        TextView timestampTextView = dialogView.findViewById(R.id.marker_timestamp_text_view);
+        TextView coordinatesTextView = dialogView.findViewById(R.id.marker_coordinates_text_view);
+        TextView textTextView = dialogView.findViewById(R.id.marker_text_text_view);
+
+        TextView favoriteTextView = dialogView.findViewById(R.id.marker_favorite_text_view);
+        // Display other marker information as needed
+        nameTextView.setText(name);
+        timestampTextView.setText("Timestamp: " + timestamp); // Format timestamp as needed
+        coordinatesTextView.setText("Latitude: " + latitude + ", Longitude: " + longitude);
+        textTextView.setText("Text: " + text);
+        favoriteTextView.setText("Favorite: " + isFavorite);
+
+        builder.show();
+    }
+
+
 
     @Override
     public void onDestroyView() {
