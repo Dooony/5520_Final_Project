@@ -124,7 +124,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                 // Move the camera to the searched location and add a marker
                 LatLng searchedLocation = new LatLng(latitude, longitude);
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(searchedLocation, 14));
-                mMap.addMarker(new MarkerOptions().position(searchedLocation).title(locationName));
+
             } else {
                 // If no address found, show a toast indicating that the location could not be found
                 Toast.makeText(getContext(), "Location not found", Toast.LENGTH_SHORT).show();
