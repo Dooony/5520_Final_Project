@@ -352,8 +352,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         TextView timestampTextView = dialogView.findViewById(R.id.marker_timestamp_text_view);
         TextView coordinatesTextView = dialogView.findViewById(R.id.marker_coordinates_text_view);
         TextView textTextView = dialogView.findViewById(R.id.marker_text_text_view);
-
         TextView favoriteTextView = dialogView.findViewById(R.id.marker_favorite_text_view);
+        Button deleteButton = dialogView.findViewById(R.id.delete_button);
+
         // Display other marker information as needed
         nameTextView.setText(name);
         timestampTextView.setText("Timestamp: " + timestamp); // Format timestamp as needed
@@ -361,8 +362,47 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         textTextView.setText("Text: " + text);
         favoriteTextView.setText("Favorite: " + isFavorite);
 
+        // Set click listener for delete button
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Remove marker from the map
+                mMap.clear();
+
+                // Delete marker data from Firebase based on latitude and longitude
+                deleteMarkerFromDatabase(latitude, longitude);
+
+                // Dismiss the dialog
+                builder.create().dismiss();
+            }
+        });
+
         builder.show();
     }
+
+    private void deleteMarkerFromDatabase(double latitude, double longitude) {
+        // Query Firebase to find the marker with the specified latitude and longitude
+        markersRef.orderByChild("latitude").equalTo(latitude).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot markerSnapshot : dataSnapshot.getChildren()) {
+                    double markerLongitude = markerSnapshot.child("longitude").getValue(Double.class);
+                    if (markerLongitude == longitude) {
+                        // Delete the marker data
+                        markerSnapshot.getRef().removeValue();
+                        return; // Exit loop after deleting the marker
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Handle onCancelled
+            }
+        });
+    }
+
+
 
 
 
