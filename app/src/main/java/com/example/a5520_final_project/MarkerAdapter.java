@@ -68,13 +68,17 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.MarkerView
 
             // Clear previous photos
             photoContainer.removeAllViews();
+            photoContainer.setOrientation(LinearLayout.VERTICAL);
 
             // Add photos to the photo container
             for (String photoUrl : marker.getPhotos()) {
                 ImageView imageView = new ImageView(itemView.getContext());
-                imageView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+                layoutParams.setMargins(0, 0, 0, 2);
+                imageView.setLayoutParams(layoutParams);
                 Picasso.get().load(photoUrl).into(imageView);
                 photoContainer.addView(imageView);
             }
@@ -82,7 +86,6 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.MarkerView
 
 
         private String formatDate(long timestamp) {
-            // Convert timestamp to formatted date string (e.g., "Apr 17, 2024")
             SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
             return dateFormat.format(new Date(timestamp));
         }

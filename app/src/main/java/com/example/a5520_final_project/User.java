@@ -5,10 +5,6 @@ import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 
-// A User class that represents a user in the app
-// This is intended to be used with Firebase Authentication
-// and it is very simple, but in practice you might include many more fields like name, profile picture, age, etc.
-// the information can be collected at registration, and even updated in a settings feature.
 public class User implements Parcelable {
 
     private String id;

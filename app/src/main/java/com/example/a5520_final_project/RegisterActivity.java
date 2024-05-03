@@ -15,9 +15,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-// This class represents the registration activity
-// It allows the user to register a new account
-// It uses Firebase Authentication to create a new user
 
 public class RegisterActivity extends AppCompatActivity {
 
